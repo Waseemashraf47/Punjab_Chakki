@@ -48,6 +48,8 @@ class Database:
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 total_amount REAL NOT NULL,
                 discount REAL DEFAULT 0.0,
+                customer_name TEXT,
+                customer_contact TEXT,
                 payment_method TEXT,
                 user_id INTEGER,
                 FOREIGN KEY (user_id) REFERENCES users(id)
@@ -74,6 +76,15 @@ class Database:
         except sqlite3.OperationalError:
              print("Migrating: Adding discount column to sales table...")
              self.cursor.execute("ALTER TABLE sales ADD COLUMN discount REAL DEFAULT 0.0")
+             self.conn.commit()
+
+        # Migration: Add customer columns if not exists
+        try:
+             self.cursor.execute("SELECT customer_name FROM sales LIMIT 1")
+        except sqlite3.OperationalError:
+             print("Migrating: Adding customer columns to sales table...")
+             self.cursor.execute("ALTER TABLE sales ADD COLUMN customer_name TEXT")
+             self.cursor.execute("ALTER TABLE sales ADD COLUMN customer_contact TEXT")
              self.conn.commit()
 
     def seed_data(self):
@@ -141,11 +152,11 @@ class Database:
 
 
     # --- Sales Helpers ---
-    def record_sale(self, user_id, items, total_amount, payment_method, discount=0.0):
+    def record_sale(self, user_id, items, total_amount, payment_method, discount=0.0, customer_name=None, customer_contact=None):
         # items is a list of tuples: (product_id, quantity, price_at_sale)
         try:
-            self.cursor.execute("INSERT INTO sales (user_id, total_amount, payment_method, discount) VALUES (?, ?, ?, ?)",
-                                (user_id, total_amount, payment_method, discount))
+            self.cursor.execute("INSERT INTO sales (user_id, total_amount, payment_method, discount, customer_name, customer_contact) VALUES (?, ?, ?, ?, ?, ?)",
+                                (user_id, total_amount, payment_method, discount, customer_name, customer_contact))
             sale_id = self.cursor.lastrowid
             
             for item in items:

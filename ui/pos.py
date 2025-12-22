@@ -53,15 +53,36 @@ class POSWindow(tk.Frame):
         self.prod_tree.column("price", width=80)
         self.prod_tree.column("stock", width=80)
         
+        self.prod_tree.column("stock", width=80)
+        
         self.prod_tree.pack(fill=tk.BOTH, expand=True)
         self.prod_tree.bind("<Double-1>", self.add_to_cart)
+
+        # Configure tags for zebra striping
+        self.prod_tree.tag_configure('odd', background='#e0e0e0')
+        self.prod_tree.tag_configure('even', background='white')
 
         # --- Right Side: Cart & Checkout ---
         right_frame = tk.Frame(self.paned, bg="#f9f9f9", padx=10, pady=10)
         self.paned.add(right_frame)
         
         tk.Label(right_frame, text="Current Cart", font=("Arial", 12, "bold"), bg="#f9f9f9").pack(pady=5)
+
+        # --- Customer Details ---
+        cust_frame = tk.Frame(right_frame, bg="#f9f9f9")
+        cust_frame.pack(fill=tk.X, pady=5)
         
+        tk.Label(cust_frame, text="Customer Name:", bg="#f9f9f9").grid(row=0, column=0, sticky="w", padx=5)
+        self.cust_name_var = tk.StringVar()
+        tk.Entry(cust_frame, textvariable=self.cust_name_var).grid(row=0, column=1, sticky="EW", padx=5)
+        
+        tk.Label(cust_frame, text="Contact No:", bg="#f9f9f9").grid(row=0, column=2, sticky="w", padx=5)
+        self.cust_contact_var = tk.StringVar()
+        tk.Entry(cust_frame, textvariable=self.cust_contact_var).grid(row=0, column=3, sticky="EW", padx=5)
+        
+        cust_frame.columnconfigure(1, weight=1)
+        cust_frame.columnconfigure(3, weight=1)
+
         # Cart Treeview
         cart_cols = ("sys_id", "name", "price", "qty", "total") 
         self.cart_tree = ttk.Treeview(right_frame, columns=cart_cols, show="headings", height=15)
@@ -184,8 +205,9 @@ class POSWindow(tk.Frame):
     def update_product_list(self, products):
         for item in self.prod_tree.get_children():
             self.prod_tree.delete(item)
-        for p in products:
-            self.prod_tree.insert("", tk.END, values=(p["id"], p["name"], p["price"], p["stock_quantity"]))
+        for i, p in enumerate(products):
+            tag = 'even' if i % 2 == 0 else 'odd'
+            self.prod_tree.insert("", tk.END, values=(p["id"], p["name"], p["price"], p["stock_quantity"]), tags=(tag,))
 
     def filter_products(self, *args):
         query = self.search_var.get().lower()
@@ -394,21 +416,26 @@ class POSWindow(tk.Frame):
             # items: (product_id, quantity, price_at_sale)
             sale_items = [(x["id"], x["qty"], x["price"]) for x in self.cart]
             
-            sale_id = self.db.record_sale(self.user["id"], sale_items, total, self.payment_method.get(), self.discount_amt)
+            cust_name = self.cust_name_var.get().strip()
+            cust_contact = self.cust_contact_var.get().strip()
+            
+            sale_id = self.db.record_sale(self.user["id"], sale_items, total, self.payment_method.get(), self.discount_amt, cust_name, cust_contact)
             
             if sale_id:
                 # Ask (optional) to print receipt
                 if messagebox.askyesno("Print Receipt", "Do you want to print the receipt?"):
-                    self.print_receipt(sale_id, subtotal, self.discount_amt, total, self.payment_method.get())
+                    self.print_receipt(sale_id, subtotal, self.discount_amt, total, self.payment_method.get(), cust_name, cust_contact)
                 
                 messagebox.showinfo("Success", "Sale recorded successfully!")
                 self.cart = []
                 self.refresh_cart()
+                self.cust_name_var.set("")
+                self.cust_contact_var.set("")
                 self.load_products() # Refresh stock display
             else:
                 messagebox.showerror("Error", "Failed to record sale.")
 
-    def print_receipt(self, sale_id, subtotal, discount, total, method):
+    def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
         # Generate a text receipt
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         lines = [
@@ -420,10 +447,16 @@ class POSWindow(tk.Frame):
             "--------------------------------",
             f"Date: {timestamp}",
             f"Sale ID: {sale_id}",
-            f"Staff: {self.user['username']}",
-            "--------------------------------",
-            f"{'Item':<20} {'Qty':<5} {'Total'}"
+            f"Staff: {self.user['username']}"
         ]
+        
+        if cust_name:
+            lines.append(f"Customer: {cust_name}")
+        if cust_contact:
+            lines.append(f"Contact: {cust_contact}")
+            
+        lines.append("--------------------------------")
+        lines.append(f"{'Item':<20} {'Qty':<5} {'Total'}")
         
         for item in self.cart:
             lines.append(f"{item['name']:<20} {item['qty']:<5.2f} {item['total']:.2f}")

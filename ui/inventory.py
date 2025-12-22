@@ -84,6 +84,9 @@ class InventoryWindow(tk.Frame):
         
         # Tags for low stock
         self.tree.tag_configure("low_stock", background="#ffcccc")
+        # Tags for zebra striping
+        self.tree.tag_configure("odd", background="#e0e0e0")
+        self.tree.tag_configure("even", background="white")
 
     def load_data(self):
         # Clear current data
@@ -91,11 +94,14 @@ class InventoryWindow(tk.Frame):
             self.tree.delete(item)
             
         products = self.db.get_all_products()
-        for p in products:
+        for i, p in enumerate(products):
             # p keys: id, name, sku, price, stock_quantity, category, low_stock_threshold
             tags = ()
             if p["stock_quantity"] <= p["low_stock_threshold"]:
                 tags = ("low_stock",)
+            else:
+                # Apply striping only if not low stock (to preserve warning color)
+                tags = ("even",) if i % 2 == 0 else ("odd",)
             
             self.tree.insert("", tk.END, values=(
                 p["id"], p["name"], p["sku"], p["category"], 

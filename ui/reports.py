@@ -33,22 +33,31 @@ class ReportsWindow(tk.Frame):
         self.summary_label.pack(anchor="w", pady=5)
 
         # Sales List Treeview
-        columns = ("id", "date", "total", "method", "user")
+        columns = ("id", "date", "customer", "contact", "total", "method", "user")
         self.tree = ttk.Treeview(self, columns=columns, show="headings")
         
         self.tree.heading("id", text="Sale ID")
         self.tree.heading("date", text="Date/Time")
+        self.tree.heading("customer", text="Customer")
+        self.tree.heading("contact", text="Contact")
         self.tree.heading("total", text="Total Amount")
         self.tree.heading("method", text="Payment Method")
         self.tree.heading("user", text="User (ID)")
         
         self.tree.column("id", width=50)
         self.tree.column("date", width=150)
+        self.tree.column("customer", width=120)
+        self.tree.column("contact", width=120)
         
         scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.pack(fill=tk.BOTH, expand=True)
+
+        # Tags for zebra striping
+        self.tree.tag_configure("odd", background="#e0e0e0")
+        self.tree.tag_configure("even", background="white")
 
     def load_data(self, event=None):
         # Clear tree
@@ -86,8 +95,12 @@ class ReportsWindow(tk.Frame):
 
         # Update Tree and Summary
         total_amount = 0.0
-        for s in filtered_sales:
-            self.tree.insert("", tk.END, values=(s["id"], s["timestamp"], s["total_amount"], s["payment_method"], s["user_id"]))
+        for i, s in enumerate(filtered_sales):
+            tag = "even" if i % 2 == 0 else "odd"
+            self.tree.insert("", tk.END, values=(
+                s["id"], s["timestamp"], s["customer_name"], s["customer_contact"], 
+                s["total_amount"], s["payment_method"], s["user_id"]
+            ), tags=(tag,))
             total_amount += s["total_amount"]
             
         self.summary_label.config(text=f"Total Sales: {total_amount:.2f} | Transactions: {len(filtered_sales)}")
@@ -103,9 +116,9 @@ class ReportsWindow(tk.Frame):
             try:
                 with open(filename, mode='w', newline='') as file:
                     writer = csv.writer(file)
-                    writer.writerow(["Sale ID", "Date", "Total Amount", "Payment Method", "User ID"])
+                    writer.writerow(["Sale ID", "Date", "Customer Name", "Contact No", "Total Amount", "Payment Method", "User ID"])
                     for s in self.current_data:
-                         writer.writerow([s["id"], s["timestamp"], s["total_amount"], s["payment_method"], s["user_id"]])
+                         writer.writerow([s["id"], s["timestamp"], s["customer_name"], s["customer_contact"], s["total_amount"], s["payment_method"], s["user_id"]])
                 messagebox.showinfo("Success", "Data exported successfully")
             except Exception as e:
                 messagebox.showerror("Error", f"Export failed: {e}")

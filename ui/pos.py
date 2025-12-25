@@ -427,6 +427,7 @@ class POSWindow(tk.Frame):
                     self.print_receipt(sale_id, subtotal, self.discount_amt, total, self.payment_method.get(), cust_name, cust_contact)
                 
                 messagebox.showinfo("Success", "Sale recorded successfully!")
+                self.db.log_activity(self.user["id"], f"Recorded sale ID: {sale_id}, Total: {total:.2f}")
                 self.cart = []
                 self.refresh_cart()
                 self.cust_name_var.set("")

@@ -3,6 +3,8 @@ from tkinter import ttk
 from ui.inventory import InventoryWindow
 from ui.pos import POSWindow
 from ui.reports import ReportsWindow
+from ui.users import UserManagementWindow
+from ui.logs import ActivityLogWindow
 
 class MainWindow:
     def __init__(self, root, user, logout_callback):
@@ -46,9 +48,19 @@ class MainWindow:
         if self.user['role'] == 'owner':
             self.inventory_frame = tk.Frame(self.notebook)
             self.notebook.add(self.inventory_frame, text="Inventory Management")
-            self.inventory_app = InventoryWindow(self.inventory_frame, self.user['role'])
+            self.inventory_app = InventoryWindow(self.inventory_frame, self.user)
             
             # Reports Tab (Owner Only)
             self.reports_frame = tk.Frame(self.notebook)
             self.notebook.add(self.reports_frame, text="Reports & Analytics")
             self.reports_app = ReportsWindow(self.reports_frame)
+            
+        # User Management & Logs (Owner and Admin Only)
+        if self.user['role'] in ['owner', 'admin']:
+            self.users_frame = tk.Frame(self.notebook)
+            self.notebook.add(self.users_frame, text="User Management")
+            self.users_app = UserManagementWindow(self.users_frame, self.user)
+            
+            self.logs_frame = tk.Frame(self.notebook)
+            self.notebook.add(self.logs_frame, text="Activity Logs")
+            self.logs_app = ActivityLogWindow(self.logs_frame, self.user)

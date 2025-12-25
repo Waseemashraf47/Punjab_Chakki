@@ -3,10 +3,11 @@ from tkinter import ttk, messagebox
 from database import Database
 
 class InventoryWindow(tk.Frame):
-    def __init__(self, parent, user_role):
+    def __init__(self, parent, user):
         super().__init__(parent)
         self.db = Database()
-        self.user_role = user_role
+        self.user = user
+        self.user_role = user['role']
         self.pack(fill=tk.BOTH, expand=True)
         
         self.create_widgets()
@@ -123,6 +124,7 @@ class InventoryWindow(tk.Frame):
 
             if self.db.add_product(name, sku, price, stock, category, threshold):
                 messagebox.showinfo("Success", "Product added successfully")
+                self.db.log_activity(self.user["id"], f"Added product: {name} (SKU: {sku})")
                 self.clear_fields()
                 self.load_data()
             else:
@@ -140,6 +142,7 @@ class InventoryWindow(tk.Frame):
             item = self.tree.item(selected[0])
             p_id = item["values"][0]
             self.db.delete_product(p_id)
+            self.db.log_activity(self.user["id"], f"Deleted product ID: {p_id}, Name: {item['values'][1]}")
             self.load_data()
             self.clear_fields()
 
@@ -184,6 +187,7 @@ class InventoryWindow(tk.Frame):
             # will be `update_product_complete(self, product_id, name, sku, price, stock, category, threshold)`
             
             self.db.update_product_complete(p_id, name, sku, price, stock, category, threshold)
+            self.db.log_activity(self.user["id"], f"Updated product ID: {p_id}, Name: {name}")
             
             messagebox.showinfo("Success", "Product updated")
             self.load_data()

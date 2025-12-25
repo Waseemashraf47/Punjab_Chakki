@@ -24,7 +24,18 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                role TEXT NOT NULL  -- 'owner' or 'worker'
+                role TEXT NOT NULL  -- 'owner', 'admin', or 'worker'
+            )
+        """)
+
+        # Activity Logs Table
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                action TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         """)
 
@@ -92,8 +103,10 @@ class Database:
         self.cursor.execute("SELECT count(*) FROM users")
         if self.cursor.fetchone()[0] == 0:
             print("Seeding initial users...")
-            # Default Owner: admin / admin123
-            self.add_user("admin", "admin123", "owner")
+            # Default Owner: owner / owner123
+            self.add_user("owner", "owner123", "owner")
+            # Default Admin: admin / admin123
+            self.add_user("admin", "admin123", "admin")
             # Default Worker: worker / worker123
             self.add_user("worker", "worker123", "worker")
         
@@ -118,6 +131,32 @@ class Database:
         password_hash = hashlib.sha256(password.encode()).hexdigest()
         self.cursor.execute("SELECT * FROM users WHERE username = ? AND password_hash = ?", (username, password_hash))
         return self.cursor.fetchone()
+
+    def get_all_users(self):
+        self.cursor.execute("SELECT id, username, role FROM users")
+        return self.cursor.fetchall()
+
+    def delete_user(self, user_id):
+        self.cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        self.conn.commit()
+        return True
+
+    # --- Activity Logs ---
+    def log_activity(self, user_id, action):
+        try:
+            self.cursor.execute("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)", (user_id, action))
+            self.conn.commit()
+        except Exception as e:
+            print(f"Error logging activity: {e}")
+
+    def get_activities(self):
+        self.cursor.execute("""
+            SELECT l.timestamp, u.username, l.action 
+            FROM activity_logs l 
+            JOIN users u ON l.user_id = u.id 
+            ORDER BY l.timestamp DESC
+        """)
+        return self.cursor.fetchall()
 
     # --- Product Helpers ---
     def add_product(self, name, sku, price, stock, category, threshold):

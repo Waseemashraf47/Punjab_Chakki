@@ -1,0 +1,26 @@
+name: Build Windows Executable
+on: [push]  # Runs on every push
+
+jobs:
+  build:
+    runs-on: windows-latest  # Uses a fresh Windows virtual machine
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build EXE with PyInstaller
+        run: pyinstaller --onefile --windowed --name=PunjabAataChakki main.py
+
+      - name: Upload EXE as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: PunjabAataChakki-Windows
+          path: dist/PunjabAataChakki.exe

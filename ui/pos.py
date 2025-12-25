@@ -40,6 +40,9 @@ class POSWindow(tk.Frame):
         self.cat_filter.pack(side=tk.LEFT, padx=5)
         self.cat_filter.bind("<<ComboboxSelected>>", self.filter_products)
         
+        # Refresh Button
+        tk.Button(search_frame, text="Refresh", command=self.load_products, bg="#607D8B", fg="white").pack(side=tk.LEFT, padx=5)
+        
         # Product List (Treeview)
         columns = ("id", "name", "price", "stock")
         self.prod_tree = ttk.Treeview(left_frame, columns=columns, show="headings")
@@ -207,7 +210,7 @@ class POSWindow(tk.Frame):
             self.prod_tree.delete(item)
         for i, p in enumerate(products):
             tag = 'even' if i % 2 == 0 else 'odd'
-            self.prod_tree.insert("", tk.END, values=(p["id"], p["name"], p["price"], p["stock_quantity"]), tags=(tag,))
+            self.prod_tree.insert("", tk.END, values=(p["id"], p["name"], f"{p['price']:.2f}", f"{p['stock_quantity']:.2f}"), tags=(tag,))
 
     def filter_products(self, *args):
         query = self.search_var.get().lower()

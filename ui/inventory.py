@@ -14,8 +14,8 @@ class InventoryWindow(tk.Frame):
         self.load_data()
 
     def create_widgets(self):
-        # Top Frame for Inputs (Only if Owner)
-        if self.user_role == "owner":
+        # Top Frame for Inputs (Only if Owner or Admin)
+        if self.user_role in ["owner", "admin"]:
             input_frame = tk.LabelFrame(self, text="Manage Product", padx=10, pady=10)
             input_frame.pack(fill=tk.X, padx=10, pady=5)
 
@@ -56,7 +56,14 @@ class InventoryWindow(tk.Frame):
             tk.Button(btn_frame, text="Add Product", command=self.add_product, bg="#4CAF50", fg="white").pack(side=tk.LEFT, padx=5)
             tk.Button(btn_frame, text="Update Selected", command=self.update_product, bg="#2196F3", fg="white").pack(side=tk.LEFT, padx=5)
             tk.Button(btn_frame, text="Delete Selected", command=self.delete_product, bg="#F44336", fg="white").pack(side=tk.LEFT, padx=5)
+            tk.Button(btn_frame, text="Refresh", command=self.load_data, bg="#607D8B", fg="white").pack(side=tk.LEFT, padx=5)
             tk.Button(btn_frame, text="Clear Fields", command=self.clear_fields, bg="grey", fg="white").pack(side=tk.LEFT, padx=5)
+        else:
+            # Add a standalone Refresh button for workers if needed, 
+            # but usually admin/owner manage this. Let's add one anyway.
+            btn_frame = tk.Frame(self)
+            btn_frame.pack(fill=tk.X, padx=10)
+            tk.Button(btn_frame, text="Refresh", command=self.load_data, bg="#607D8B", fg="white").pack(side=tk.RIGHT, padx=5)
 
         # Treeview Configuration
         tree_frame = tk.Frame(self)
@@ -106,7 +113,7 @@ class InventoryWindow(tk.Frame):
             
             self.tree.insert("", tk.END, values=(
                 p["id"], p["name"], p["sku"], p["category"], 
-                p["price"], p["stock_quantity"], p["low_stock_threshold"]
+                f"{p['price']:.2f}", f"{p['stock_quantity']:.2f}", f"{p['low_stock_threshold']:.2f}"
             ), tags=tags)
 
     def add_product(self):
@@ -115,8 +122,8 @@ class InventoryWindow(tk.Frame):
             sku = self.sku_entry.get()
             category = self.category_entry.get()
             price = float(self.price_entry.get())
-            stock = int(self.stock_entry.get())
-            threshold = int(self.threshold_entry.get())
+            stock = float(self.stock_entry.get())
+            threshold = float(self.threshold_entry.get())
 
             if not name or not sku:
                 messagebox.showerror("Error", "Name and SKU are required")
@@ -164,8 +171,8 @@ class InventoryWindow(tk.Frame):
             # For update, we might handle stock differently (add/remove) but simple override is okay for now
             # However, usually stock is adjusted via transactions. 
             # I'll allow full edit for Owner.
-            stock = int(self.stock_entry.get()) 
-            threshold = int(self.threshold_entry.get())
+            stock = float(self.stock_entry.get()) 
+            threshold = float(self.threshold_entry.get())
             
             # We need a db method update_product_details. I'll need to check if I added it.
             # I added update_product_details but it didn't include stock.
@@ -197,7 +204,7 @@ class InventoryWindow(tk.Frame):
             messagebox.showerror("Error", "Invalid numeric values")
 
     def on_select(self, event):
-        if self.user_role != "owner": return
+        if self.user_role not in ["owner", "admin"]: return
         
         selected = self.tree.selection()
         if selected:

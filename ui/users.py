@@ -61,6 +61,7 @@ class UserManagementWindow(tk.Frame):
             tk.Button(btn_container, text="Change Password", command=self.change_password, bg="#2196F3", fg="white", width=15).pack(pady=5)
             
         tk.Button(btn_container, text="Delete Selected", command=self.delete_user, bg="#F44336", fg="white", width=15).pack(pady=5)
+        tk.Button(btn_container, text="Refresh List", command=self.load_users, bg="#607D8B", fg="white", width=15).pack(pady=5)
 
     def change_password(self):
         selected = self.tree.selection()

@@ -46,9 +46,9 @@ class Database:
                 name TEXT NOT NULL,
                 sku TEXT UNIQUE,
                 price REAL NOT NULL,
-                stock_quantity INTEGER DEFAULT 0,
+                stock_quantity REAL DEFAULT 0,
                 category TEXT,
-                low_stock_threshold INTEGER DEFAULT 10
+                low_stock_threshold REAL DEFAULT 10
             )
         """)
 
@@ -73,7 +73,7 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 sale_id INTEGER,
                 product_id INTEGER,
-                quantity INTEGER,
+                quantity REAL,
                 price_at_sale REAL,
                 FOREIGN KEY (sale_id) REFERENCES sales(id),
                 FOREIGN KEY (product_id) REFERENCES products(id)
@@ -81,6 +81,18 @@ class Database:
         """)
         self.conn.commit()
         
+        # Migration: Ensure stock_quantity is REAL
+        try:
+             self.cursor.execute("PRAGMA table_info(products)")
+             columns = self.cursor.fetchall()
+             for col in columns:
+                 if col['name'] == 'stock_quantity' and col['type'].upper() != 'REAL':
+                     # SQLite doesn't easily support ALTER COLUMN type, 
+                     # but values are dynamic. However, we'll just note it.
+                     pass
+        except:
+             pass
+
         # Migration: Add discount column if not exists
         try:
              self.cursor.execute("SELECT discount FROM sales LIMIT 1")
@@ -114,8 +126,8 @@ class Database:
         self.cursor.execute("SELECT count(*) FROM products")
         if self.cursor.fetchone()[0] == 0:
              print("Seeding sample products...")
-             self.add_product("Wheat Flour (10kg)", "WF10", 500, 100, "Flour", 20)
-             self.add_product("Rice (1kg)", "RI01", 150, 50, "Grains", 10)
+             self.add_product("Wheat Flour (10kg)", "WF10", 500.00, 100.00, "Flour", 20.00)
+             self.add_product("Rice (1kg)", "RI01", 150.00, 50.00, "Grains", 10.00)
 
     def add_user(self, username, password, role):
         password_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -218,7 +230,7 @@ class Database:
             self.conn.rollback()
             return None
 
-    def get_sales_report(self, filter_type="all"):
+    def get_sales_report(self):
         # Basic reporting placeholder with seller name
         query = """
             SELECT s.*, COALESCE(u.username, 'Deleted User') as seller_name 
@@ -228,9 +240,38 @@ class Database:
         """
         self.cursor.execute(query)
         return self.cursor.fetchall()
+    
+    def backup_database(self, backup_path):
+        import shutil
+        try:
+            self.conn.close()
+            shutil.copy2(DB_NAME, backup_path)
+            self.connect()
+            return True
+        except Exception as e:
+            print(f"Backup failed: {e}")
+            self.connect()
+            return False
+
+    def restore_database(self, backup_path):
+        import shutil
+        try:
+            self.conn.close()
+            shutil.copy2(backup_path, DB_NAME)
+            self.connect()
+            return True
+        except Exception as e:
+            print(f"Restore failed: {e}")
+            self.connect()
+            return False
         
     def close(self):
         self.conn.close()
+
+if __name__ == "__main__":
+    db = Database()
+    print("Database initialized.")
+
 
 if __name__ == "__main__":
     db = Database()

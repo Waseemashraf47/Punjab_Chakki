@@ -44,19 +44,19 @@ class MainWindow:
         self.notebook.add(self.pos_frame, text="POS & Checkout")
         self.pos_app = POSWindow(self.pos_frame, self.user)
         
-        # Inventory Tab (Owner Only)
-        if self.user['role'] == 'owner':
+        # Inventory Tab (Owner and Admin Only)
+        if self.user['role'] in ['owner', 'admin']:
             self.inventory_frame = tk.Frame(self.notebook)
             self.notebook.add(self.inventory_frame, text="Inventory Management")
             self.inventory_app = InventoryWindow(self.inventory_frame, self.user)
             
-            # Reports Tab (Owner Only)
+            # Reports Tab (Owner and Admin Only)
             self.reports_frame = tk.Frame(self.notebook)
             self.notebook.add(self.reports_frame, text="Reports & Analytics")
-            self.reports_app = ReportsWindow(self.reports_frame)
+            self.reports_app = ReportsWindow(self.reports_frame, self.user) # Pass user for backup access check
             
-        # User Management & Logs (Owner and Admin Only)
-        if self.user['role'] in ['owner', 'admin']:
+        # User Management & Logs (Owner Only)
+        if self.user['role'] == 'owner':
             self.users_frame = tk.Frame(self.notebook)
             self.notebook.add(self.users_frame, text="User Management")
             self.users_app = UserManagementWindow(self.users_frame, self.user)

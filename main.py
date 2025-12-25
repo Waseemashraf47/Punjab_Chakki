@@ -40,6 +40,10 @@ class App:
         self.root.deiconify() # Show main window container
         self.root.title(f"Punjab Aata Chakki - {user['role'].title()} Mode")
         self.root.geometry("1024x768")
+        try:
+            self.root.attributes('-zoomed', True) # Maximize on Linux
+        except:
+            self.root.state('zoomed') # Maximize on Windows fallback
         
         from ui.main_window import MainWindow
         self.main_window = MainWindow(self.root, self.current_user, self.logout)

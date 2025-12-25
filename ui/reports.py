@@ -42,7 +42,7 @@ class ReportsWindow(tk.Frame):
         self.tree.heading("contact", text="Contact")
         self.tree.heading("total", text="Total Amount")
         self.tree.heading("method", text="Payment Method")
-        self.tree.heading("user", text="User (ID)")
+        self.tree.heading("user", text="Seller")
         
         self.tree.column("id", width=50)
         self.tree.column("date", width=150)
@@ -99,7 +99,7 @@ class ReportsWindow(tk.Frame):
             tag = "even" if i % 2 == 0 else "odd"
             self.tree.insert("", tk.END, values=(
                 s["id"], s["timestamp"], s["customer_name"], s["customer_contact"], 
-                s["total_amount"], s["payment_method"], s["user_id"]
+                s["total_amount"], s["payment_method"], s["seller_name"]
             ), tags=(tag,))
             total_amount += s["total_amount"]
             
@@ -116,9 +116,9 @@ class ReportsWindow(tk.Frame):
             try:
                 with open(filename, mode='w', newline='') as file:
                     writer = csv.writer(file)
-                    writer.writerow(["Sale ID", "Date", "Customer Name", "Contact No", "Total Amount", "Payment Method", "User ID"])
+                    writer.writerow(["Sale ID", "Date", "Customer Name", "Contact No", "Total Amount", "Payment Method", "Seller"])
                     for s in self.current_data:
-                         writer.writerow([s["id"], s["timestamp"], s["customer_name"], s["customer_contact"], s["total_amount"], s["payment_method"], s["user_id"]])
+                         writer.writerow([s["id"], s["timestamp"], s["customer_name"], s["customer_contact"], s["total_amount"], s["payment_method"], s["seller_name"]])
                 messagebox.showinfo("Success", "Data exported successfully")
             except Exception as e:
                 messagebox.showerror("Error", f"Export failed: {e}")

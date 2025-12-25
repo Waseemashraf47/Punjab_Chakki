@@ -141,6 +141,12 @@ class Database:
         self.conn.commit()
         return True
 
+    def update_password(self, user_id, new_password):
+        password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        self.cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+        self.conn.commit()
+        return True
+
     # --- Activity Logs ---
     def log_activity(self, user_id, action):
         try:
@@ -213,9 +219,13 @@ class Database:
             return None
 
     def get_sales_report(self, filter_type="all"):
-        # Basic reporting placeholder
-        query = "SELECT * FROM sales ORDER BY timestamp DESC"
-        # In a real app, I'd add date filtering logic here based on filter_type
+        # Basic reporting placeholder with seller name
+        query = """
+            SELECT s.*, COALESCE(u.username, 'Deleted User') as seller_name 
+            FROM sales s 
+            LEFT JOIN users u ON s.user_id = u.id 
+            ORDER BY s.timestamp DESC
+        """
         self.cursor.execute(query)
         return self.cursor.fetchall()
         

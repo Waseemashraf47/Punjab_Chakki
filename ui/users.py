@@ -54,7 +54,33 @@ class UserManagementWindow(tk.Frame):
         
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        tk.Button(list_frame, text="Delete Selected", command=self.delete_user, bg="#F44336", fg="white").pack(side=tk.TOP, pady=10, padx=10)
+        btn_container = tk.Frame(list_frame)
+        btn_container.pack(side=tk.RIGHT, fill=tk.Y, padx=10)
+
+        if self.user['role'] == 'owner':
+            tk.Button(btn_container, text="Change Password", command=self.change_password, bg="#2196F3", fg="white", width=15).pack(pady=5)
+            
+        tk.Button(btn_container, text="Delete Selected", command=self.delete_user, bg="#F44336", fg="white", width=15).pack(pady=5)
+
+    def change_password(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Warning", "Select a user to change password")
+            return
+            
+        user_vals = self.tree.item(selected[0])["values"]
+        user_id = user_vals[0]
+        username = user_vals[1]
+
+        from tkinter import simpledialog
+        new_password = simpledialog.askstring("Change Password", f"Enter new password for {username}:", show="*")
+        
+        if new_password:
+            if self.db.update_password(user_id, new_password):
+                messagebox.showinfo("Success", f"Password for '{username}' updated successfully")
+                self.db.log_activity(self.user["id"], f"Changed password for user: {username}")
+            else:
+                messagebox.showerror("Error", "Failed to update password")
 
     def load_users(self):
         for item in self.tree.get_children():

@@ -190,6 +190,10 @@ class Database:
         self.cursor.execute("SELECT * FROM products")
         return self.cursor.fetchall()
 
+    def get_product_by_sku(self, sku):
+        self.cursor.execute("SELECT * FROM products WHERE sku = ?", (sku,))
+        return self.cursor.fetchone()
+
     def update_stock(self, product_id, quantity_change):
         # quantity_change can be positive (add stock) or negative (sale)
         self.cursor.execute("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?", (quantity_change, product_id))

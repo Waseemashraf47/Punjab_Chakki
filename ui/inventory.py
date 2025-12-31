@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
+import csv
 from database import Database
 
 class InventoryWindow(tk.Frame):
@@ -56,6 +57,8 @@ class InventoryWindow(tk.Frame):
             tk.Button(btn_frame, text="Add Product", command=self.add_product, bg="#4CAF50", fg="white").pack(side=tk.LEFT, padx=5)
             tk.Button(btn_frame, text="Update Selected", command=self.update_product, bg="#2196F3", fg="white").pack(side=tk.LEFT, padx=5)
             tk.Button(btn_frame, text="Delete Selected", command=self.delete_product, bg="#F44336", fg="white").pack(side=tk.LEFT, padx=5)
+            tk.Button(btn_frame, text="Export CSV", command=self.export_csv, bg="#FF9800", fg="white").pack(side=tk.LEFT, padx=5)
+            tk.Button(btn_frame, text="Import CSV", command=self.import_csv, bg="#9C27B0", fg="white").pack(side=tk.LEFT, padx=5)
             tk.Button(btn_frame, text="Refresh", command=self.load_data, bg="#607D8B", fg="white").pack(side=tk.LEFT, padx=5)
             tk.Button(btn_frame, text="Clear Fields", command=self.clear_fields, bg="grey", fg="white").pack(side=tk.LEFT, padx=5)
         else:
@@ -227,3 +230,72 @@ class InventoryWindow(tk.Frame):
         self.price_entry.delete(0, tk.END)
         self.stock_entry.delete(0, tk.END)
         self.threshold_entry.delete(0, tk.END)
+
+    def export_csv(self):
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")],
+            initialfile="products_export.csv"
+        )
+        if not file_path:
+            return
+
+        try:
+            products = self.db.get_all_products()
+            with open(file_path, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow(["Name", "SKU", "Category", "Price", "Stock", "Low Stock Threshold"])
+                for p in products:
+                    writer.writerow([
+                        p["name"], p["sku"], p["category"], 
+                        p["price"], p["stock_quantity"], p["low_stock_threshold"]
+                    ])
+            
+            self.db.log_activity(self.user["id"], f"Exported products to CSV: {file_path}")
+            messagebox.showinfo("Success", f"Products exported successfully to {file_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export CSV: {e}")
+
+    def import_csv(self):
+        file_path = filedialog.askopenfilename(
+            filetypes=[("CSV files", "*.csv")]
+        )
+        if not file_path:
+            return
+
+        if not messagebox.askyesno("Confirm Import", "This will add new products or update existing ones based on SKU. Continue?"):
+            return
+
+        try:
+            with open(file_path, mode='r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                count_added = 0
+                count_updated = 0
+                
+                for row in reader:
+                    name = row.get("Name")
+                    sku = row.get("SKU")
+                    category = row.get("Category")
+                    try:
+                        price = float(row.get("Price", 0))
+                        stock = float(row.get("Stock", 0))
+                        threshold = float(row.get("Low Stock Threshold", 10))
+                    except (ValueError, TypeError):
+                        continue # Skip invalid rows
+
+                    if not name or not sku:
+                        continue
+
+                    existing = self.db.get_product_by_sku(sku)
+                    if existing:
+                        self.db.update_product_complete(existing["id"], name, sku, price, stock, category, threshold)
+                        count_updated += 1
+                    else:
+                        self.db.add_product(name, sku, price, stock, category, threshold)
+                        count_added += 1
+
+                self.db.log_activity(self.user["id"], f"Imported products from CSV: {file_path}. Added: {count_added}, Updated: {count_updated}")
+                messagebox.showinfo("Success", f"Import complete.\nAdded: {count_added}\nUpdated: {count_updated}")
+                self.load_data()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to import CSV: {e}")

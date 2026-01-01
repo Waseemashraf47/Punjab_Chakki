@@ -4,19 +4,17 @@
     Al-Noor Colony Sector No. 3     
  Contact: 0335-554875, 0332-5596926 
 --------------------------------
-Date: 2025-12-22 15:04:37
-Sale ID: 19
-Staff: worker
-Customer: Waseem
-Contact: 03425399599
+Date: 2025-12-31 18:16:53
+Sale ID: 29
+Staff: admin
 --------------------------------
 Item                 Qty   Total
-Dal Chana            2.33  350.00
-Rice (1kg)           3.00  450.00
+Moong                1.00  200.00
+Tea                  0.09  200.00
 --------------------------------
-Subtotal: 800.00
-Discount: -50.00
-TOTAL:    750.00
+Subtotal: 400.00
+Discount: -0.00
+TOTAL:    400.00
 Paid via: Cash
 --------------------------------
       Thank you for visiting!   

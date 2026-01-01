@@ -205,3 +205,32 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+receipt_.txt
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+virt/
+
+# Distribution / directives
+build/
+dist/
+*.spec
+
+# Database
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+receipt_*.txt

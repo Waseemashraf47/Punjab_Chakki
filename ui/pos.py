@@ -939,41 +939,39 @@ class POSWindow(tk.Frame):
                 messagebox.showerror("Error", "Failed to record sale.")
                     
     def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
-            # 32 characters width (ideal for 58mm thermal printers)
-            WIDTH = 32
+            WIDTH = 64  # 80mm thermal printer width
             SEP = "-" * WIDTH
         
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
             lines = [
                 SEP,
                 "PUNJAB AATA CHAKKI".center(WIDTH),
-                "Trolly Adda, Near Gondal".center(WIDTH),
-                "Market, Al-Noor Colony".center(WIDTH),
-                "Sector No. 3".center(WIDTH),
-                "0335-5548775".center(WIDTH),
-                "0332-5596926".center(WIDTH),
+                "Trolly Adda, Near Gondal Market".center(WIDTH),
+                "Al-Noor Colony, Sector No. 3".center(WIDTH),
+                "Contact: 0335-5548775 | 0332-5596926".center(WIDTH),
                 SEP,
                 f"Date: {timestamp}",
                 f"Sale ID: {sale_id}",
                 f"Staff: {self.user['username']}",
                 SEP,
-                f"{'Item':<16}{'Qty':>6}{'Amt':>10}",
+                f"{'Item':<30}{'Qty':>6}{'Rate':>10}{'Total':>18}"
                 SEP
             ]
         
             for item in self.cart:
-                name = item["name"][:16]  # trim long names
+                name = item["name"][:22]   # Trim long names
                 qty = f"{item['qty']:.2f}"
+                rate = f"{item['price']:.2f}"
                 amt = f"{item['total']:.2f}"
-                lines.append(f"{name:<16}{qty:>6}{amt:>10}")
+                lines.append(f"{name:<22}{qty:>6}{rate:>8}{amt:>12}")
         
             lines.extend([
                 SEP,
-                f"{'Subtotal:':<20}{subtotal:>12.2f}",
-                f"{'Discount:':<20}-{discount:>11.2f}",
-                f"{'TOTAL:':<20}{total:>12.2f}",
-                f"Paid: {method}",
+                f"{'Subtotal:':<30}{subtotal:>18.2f}",
+                f"{'Discount:':<30}-{discount:>17.2f}",
+                f"{'TOTAL:':<30}{total:>18.2f}",
+                f"Paid via: {method}",
                 SEP,
                 "Thank you for visiting!".center(WIDTH),
                 SEP
@@ -992,6 +990,7 @@ class POSWindow(tk.Frame):
                     os.system(f"lp {filename}")
             except Exception as e:
                 print(f"Printing failed: {e}")
+
 
     # def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
     #         # Generate a text receipt with minimal width for thermal printer

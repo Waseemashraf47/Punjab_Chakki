@@ -937,9 +937,8 @@ class POSWindow(tk.Frame):
                 self.load_products() # Refresh stock display
             else:
                 messagebox.showerror("Error", "Failed to record sale.")
-                    
     def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
-            WIDTH = 64  # 80mm thermal printer width
+            WIDTH = 64  # 80mm printer – small font (Font B)
             SEP = "-" * WIDTH
         
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -955,22 +954,22 @@ class POSWindow(tk.Frame):
                 f"Sale ID: {sale_id}",
                 f"Staff: {self.user['username']}",
                 SEP,
-                f"{'Item':<30}{'Qty':>6}{'Rate':>10}{'Total':>18}"
+                f"{'Item':<30}{'Qty':>6}{'Rate':>10}{'Total':>18}",
                 SEP
             ]
         
             for item in self.cart:
-                name = item["name"][:22]   # Trim long names
+                name = item["name"][:30]  # trim long names
                 qty = f"{item['qty']:.2f}"
                 rate = f"{item['price']:.2f}"
                 amt = f"{item['total']:.2f}"
-                lines.append(f"{name:<22}{qty:>6}{rate:>8}{amt:>12}")
+                lines.append(f"{name:<30}{qty:>6}{rate:>10}{amt:>18}")
         
             lines.extend([
                 SEP,
-                f"{'Subtotal:':<30}{subtotal:>18.2f}",
-                f"{'Discount:':<30}-{discount:>17.2f}",
-                f"{'TOTAL:':<30}{total:>18.2f}",
+                f"{'Subtotal:':<40}{subtotal:>24.2f}",
+                f"{'Discount:':<40}-{discount:>23.2f}",
+                f"{'TOTAL:':<40}{total:>24.2f}",
                 f"Paid via: {method}",
                 SEP,
                 "Thank you for visiting!".center(WIDTH),
@@ -990,7 +989,7 @@ class POSWindow(tk.Frame):
                     os.system(f"lp {filename}")
             except Exception as e:
                 print(f"Printing failed: {e}")
-
+                pass
 
     # def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
     #         # Generate a text receipt with minimal width for thermal printer

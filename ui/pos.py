@@ -937,57 +937,199 @@ class POSWindow(tk.Frame):
                 self.load_products() # Refresh stock display
             else:
                 messagebox.showerror("Error", "Failed to record sale.")
-
     def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
-        # Generate a text receipt
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        lines = [
-            "--------------------------------",
-            "       PUNJAB AATA CHAKKI       ",
-            "   Trolly Adda, near Gondal Market,  ",
-            "    Al-Noor Colony Sector No. 3     ",
-            " Contact: 0335-554875, 0332-5596926 ",
-            "--------------------------------",
-            f"Date: {timestamp}",
-            f"Sale ID: {sale_id}",
-            f"Staff: {self.user['username']}"
-        ]
+    # Thermal printer settings for 8cm width (approx 32 characters)
+    MAX_WIDTH = 32
+    SEPARATOR_WIDTH = 24  # Shorter than max width for centered look
+    
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Helper functions for formatting
+    def center_text(text, width=MAX_WIDTH):
+        return text.center(width)
+    
+    def center_separator(char="-", width=SEPARATOR_WIDTH, total_width=MAX_WIDTH):
+        padding = (total_width - width) // 2
+        return " " * padding + char * width
+    
+    # Build receipt with minimal margins
+    lines = []
+    
+    # Minimal top margin (just one empty line)
+    lines.append("")
+    
+    # Shop header (centered)
+    lines.append(center_text("PUNJAB AATA CHAKKI"))
+    lines.append(center_text("Trolly Adda, near"))
+    lines.append(center_text("Gondal Market"))
+    lines.append(center_text("Al-Noor Colony"))
+    lines.append(center_text("Sector No. 3"))
+    lines.append(center_text("0335-554875, 0332-5596926"))
+    
+    # Centered separator
+    lines.append(center_separator())
+    
+    # Sale info (tight formatting)
+    lines.append(f"Date:   {timestamp}")
+    lines.append(f"Sale ID:{sale_id}")
+    lines.append(f"Staff:  {self.user['username']}")
+    
+    # Customer info if provided
+    if cust_name:
+        lines.append(f"Cust:   {cust_name[:20]}")  # Limit length
+    if cust_contact:
+        lines.append(f"Phone:  {cust_contact[:15]}")
+    
+    # Centered separator
+    lines.append(center_separator())
+    
+    # Item table with precise column widths (totals to 31 chars)
+    # Format: Name(18) + Qty(5) + Total(8)
+    col_name = 18
+    col_qty = 5
+    col_total = 8
+    
+    lines.append(f"{'Item':<{col_name}}{'Qty':>{col_qty}}{'Total':>{col_total}}")
+    lines.append(center_separator("-", 20))  # Shorter separator for items
+    
+    # Add cart items with truncated names if needed
+    for item in self.cart:
+        # Truncate item name if too long
+        item_name = item['name']
+        if len(item_name) > col_name:
+            item_name = item_name[:col_name-3] + ".."
         
-        if cust_name:
-            lines.append(f"Customer: {cust_name}")
-        if cust_contact:
-            lines.append(f"Contact: {cust_contact}")
+        # Format with 2 decimal places for qty and total
+        lines.append(f"{item_name:<{col_name}}{item['qty']:>{col_qty}.2f}{item['total']:>{col_total}.2f}")
+    
+    # Centered separator
+    lines.append(center_separator())
+    
+    # Totals section (right-aligned for clarity)
+    lines.append(f"{'Subtotal:':<{col_name+col_qty}}{subtotal:>{col_total}.2f}")
+    lines.append(f"{'Discount:':<{col_name+col_qty}}-{discount:>{col_total-1}.2f}")
+    lines.append(f"{'TOTAL:':<{col_name+col_qty}}{total:>{col_total}.2f}")
+    
+    # Payment method
+    lines.append(f"Paid via: {method}")
+    
+    # Final centered separator and thank you
+    lines.append(center_separator())
+    lines.append(center_text("Thank you for visiting!"))
+    lines.append(center_separator())
+    
+    # Join all lines
+    receipt_text = "\n".join(lines)
+    
+    # Save to file (for debugging and printing)
+    filename = f"receipt_{sale_id}.txt"
+    with open(filename, "w") as f:
+        f.write(receipt_text)
+    
+    # Send printer initialization commands for ZERO margins on BOTH sides
+    try:
+        if os.name == "nt":  # Windows
+            os.startfile(filename, "print")
+        else:  # Linux
+            # Send ESC/POS commands for ZERO margins on BOTH sides
+            # 1. Initialize printer (clears previous settings)
+            esc_init = b'\x1b\x40'
             
-        lines.append("--------------------------------")
-        lines.append(f"{'Item':<20} {'Qty':<5} {'Total'}")
-        
-        for item in self.cart:
-            lines.append(f"{item['name']:<20} {item['qty']:<5.2f} {item['total']:.2f}")
+            # 2. Set LEFT margin to 0 dots (nL=0, nH=0)
+            esc_left_margin = b'\x1b\x4c\x00\x00'  # ESC L nL nH
             
-        lines.append("--------------------------------")
-        lines.append(f"Subtotal: {subtotal:.2f}")
-        lines.append(f"Discount: -{discount:.2f}")
-        lines.append(f"TOTAL:    {total:.2f}")
-        lines.append(f"Paid via: {method}")
-        lines.append("--------------------------------")
-        lines.append("      Thank you for visiting!   ")
-        lines.append("--------------------------------")
-        
-        receipt_text = "\n".join(lines)
-        
-        # Save to file
-        filename = f"receipt_{sale_id}.txt"
-        with open(filename, "w") as f:
-            f.write(receipt_text)
+            # 3. Set RIGHT margin to 0 dots (nL=0, nH=0)
+            # Most common command: ESC Q n (sets right margin in characters)
+            # Alternative: ESC r n (for some printers)
+            esc_right_margin = b'\x1b\x51\x00'  # ESC Q 0 = right margin 0 chars
             
-        # Try to print (Platform specific)
+            # 4. For even better control, set print area width to max
+            # ESC W xL xH yL yH (x=left, y=width)
+            # For 8cm printer (typically 576 dots at 203 DPI)
+            esc_print_width = b'\x1b\x57\x00\x00\x40\x02'  # Left=0, Width=576
+            
+            # 5. Set line spacing to minimum
+            esc_line_spacing = b'\x1b\x33\x10'  # ESC 3 16 (16/180" spacing)
+            
+            # 6. Set character spacing to minimum (optional)
+            esc_char_spacing = b'\x1b\x20\x00'  # ESC space 0 = char spacing 0
+            
+            # Combine all commands
+            esc_commands = (esc_init + esc_left_margin + esc_right_margin + 
+                          esc_print_width + esc_line_spacing + esc_char_spacing)
+            
+            # Create a temporary file with raw ESC/POS commands
+            import subprocess
+            import tempfile
+            
+            with tempfile.NamedTemporaryFile(mode='wb', delete=False) as cmd_file:
+                cmd_file.write(esc_commands)
+                cmd_file.write(receipt_text.encode('utf-8', 'ignore'))
+                cmd_file_path = cmd_file.name
+            
+            # Send to printer using lp
+            subprocess.run(['lp', cmd_file_path])
+            
+            # Clean up
+            os.unlink(cmd_file_path)
+            
+    except Exception as e:
+        print(f"Advanced printing failed: {e}")
+        # Fallback: Use simple lp command with basic formatting
         try:
-            if os.name == "nt": # Windows
-                os.startfile(filename, "print")
-            else: # Linux
-                # Using lp command
-                os.system(f"lp {filename}")
-        except Exception as e:
-            print(f"Printing failed: {e}")
-            # Fallback: Just show it was saved
-            pass
+            os.system(f"lp {filename}")
+        except:
+            print(f"Fallback printing also failed: {e}")
+    # def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
+    #     # Generate a text receipt
+    #     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #     lines = [
+    #         "--------------------------------",
+    #         "       PUNJAB AATA CHAKKI       ",
+    #         "   Trolly Adda, near Gondal Market,  ",
+    #         "    Al-Noor Colony Sector No. 3     ",
+    #         " Contact: 0335-5548775, 0332-5596926 ",
+    #         "--------------------------------",
+    #         f"Date: {timestamp}",
+    #         f"Sale ID: {sale_id}",
+    #         f"Staff: {self.user['username']}"
+    #     ]
+        
+    #     if cust_name:
+    #         lines.append(f"Customer: {cust_name}")
+    #     if cust_contact:
+    #         lines.append(f"Contact: {cust_contact}")
+            
+    #     lines.append("--------------------------------")
+    #     lines.append(f"{'Item':<20} {'Qty':<5} {'Total'}")
+        
+    #     for item in self.cart:
+    #         lines.append(f"{item['name']:<20} {item['qty']:<5.2f} {item['total']:.2f}")
+            
+    #     lines.append("--------------------------------")
+    #     lines.append(f"Subtotal: {subtotal:.2f}")
+    #     lines.append(f"Discount: -{discount:.2f}")
+    #     lines.append(f"TOTAL:    {total:.2f}")
+    #     lines.append(f"Paid via: {method}")
+    #     lines.append("--------------------------------")
+    #     lines.append("      Thank you for visiting!   ")
+    #     lines.append("--------------------------------")
+        
+    #     receipt_text = "\n".join(lines)
+        
+    #     # Save to file
+    #     filename = f"receipt_{sale_id}.txt"
+    #     with open(filename, "w") as f:
+    #         f.write(receipt_text)
+            
+    #     # Try to print (Platform specific)
+    #     try:
+    #         if os.name == "nt": # Windows
+    #             os.startfile(filename, "print")
+    #         else: # Linux
+    #             # Using lp command
+    #             os.system(f"lp {filename}")
+    #     except Exception as e:
+    #         print(f"Printing failed: {e}")
+    #         # Fallback: Just show it was saved
+    #         pass

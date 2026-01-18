@@ -939,74 +939,129 @@ class POSWindow(tk.Frame):
                 messagebox.showerror("Error", "Failed to record sale.")
                     
     def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
-            # Generate a text receipt with minimal width for thermal printer
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
-            # Using narrower formatting for thermal printer (80mm ~ 42 chars)
-            # Reduced all widths and removed unnecessary spacing
+            # 32 characters width (ideal for 58mm thermal printers)
+            WIDTH = 32
+            SEP = "-" * WIDTH
+        
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        
             lines = [
-                "-" * 42,
-                "    PUNJAB AATA CHAKKI    ",
-                "Trolly Adda, near Gondal",
-                "  Market, Al-Noor Colony  ",
-                "    Sector No. 3     ",
-                "Contact: 0335-554875",
-                "        0332-5596926",
-                "-" * 42,
+                SEP,
+                "PUNJAB AATA CHAKKI".center(WIDTH),
+                "Trolly Adda, Near Gondal".center(WIDTH),
+                "Market, Al-Noor Colony".center(WIDTH),
+                "Sector No. 3".center(WIDTH),
+                "0335-5548775".center(WIDTH),
+                "0332-5596926".center(WIDTH),
+                SEP,
                 f"Date: {timestamp}",
                 f"Sale ID: {sale_id}",
-                f"Staff: {self.user['username']}"
+                f"Staff: {self.user['username']}",
+                SEP,
+                f"{'Item':<16}{'Qty':>6}{'Amt':>10}",
+                SEP
             ]
-            
-            if cust_name:
-                lines.append(f"Customer: {cust_name}")
-            if cust_contact:
-                lines.append(f"Contact: {cust_contact}")
-                
-            lines.append("-" * 42)
-            
-            # Narrower item formatting - reduced column widths
-            lines.append(f"{'Item':<16} {'Qty':<6} {'Total':>8}")
-            lines.append("-" * 42)
-            
+        
             for item in self.cart:
-                # Truncate item name if too long
-                item_name = item['name']
-                if len(item_name) > 16:
-                    item_name = item_name[:13] + "..."
-                
-                lines.append(f"{item_name:<16} {item['qty']:<6.2f} {item['total']:>8.2f}")
-                
-            lines.append("-" * 42)
-            
-            # Right-aligned totals in narrower format
-            lines.append(f"Subtotal: {subtotal:>33.2f}")
-            lines.append(f"Discount: -{discount:>31.2f}")
-            lines.append(f"TOTAL: {total:>35.2f}")
-            lines.append(f"Paid via: {method}")
-            lines.append("-" * 42)
-            lines.append("  Thank you for visiting!  ")
-            lines.append("-" * 42)
-            
+                name = item["name"][:16]  # trim long names
+                qty = f"{item['qty']:.2f}"
+                amt = f"{item['total']:.2f}"
+                lines.append(f"{name:<16}{qty:>6}{amt:>10}")
+        
+            lines.extend([
+                SEP,
+                f"{'Subtotal:':<20}{subtotal:>12.2f}",
+                f"{'Discount:':<20}-{discount:>11.2f}",
+                f"{'TOTAL:':<20}{total:>12.2f}",
+                f"Paid: {method}",
+                SEP,
+                "Thank you for visiting!".center(WIDTH),
+                SEP
+            ])
+        
             receipt_text = "\n".join(lines)
-            
-            # Save to file
+        
             filename = f"receipt_{sale_id}.txt"
-            with open(filename, "w") as f:
+            with open(filename, "w", encoding="utf-8") as f:
                 f.write(receipt_text)
-                
-            # Try to print (Platform specific)
+        
             try:
-                if os.name == "nt": # Windows
+                if os.name == "nt":
                     os.startfile(filename, "print")
-                else: # Linux
-                    # Using lp command with smaller font options if supported
-                    # Try to use condensed mode or smaller font
-                    os.system(f"lp -o cpi=12 -o lpi=8 {filename}")
+                else:
+                    os.system(f"lp {filename}")
             except Exception as e:
                 print(f"Printing failed: {e}")
-                # Fallback: Just show it was saved
-                pass
+
+    # def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
+    #         # Generate a text receipt with minimal width for thermal printer
+    #         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+    #         # Using narrower formatting for thermal printer (80mm ~ 42 chars)
+    #         # Reduced all widths and removed unnecessary spacing
+    #         lines = [
+    #             "-" * 15,
+    #             "    PUNJAB AATA CHAKKI    ",
+    #             "Trolly Adda, near Gondal",
+    #             "  Market, Al-Noor Colony  ",
+    #             "    Sector No. 3     ",
+    #             "Contact: 0335-5548775",
+    #             "        0332-5596926",
+    #             "-" * 15,
+    #             f"Date: {timestamp}",
+    #             f"Sale ID: {sale_id}",
+    #             f"Staff: {self.user['username']}"
+    #         ]
+            
+    #         if cust_name:
+    #             lines.append(f"Customer: {cust_name}")
+    #         if cust_contact:
+    #             lines.append(f"Contact: {cust_contact}")
+                
+    #         lines.append("-" * 15)
+            
+    #         # Narrower item formatting - reduced column widths
+    #         lines.append(f"{'Item':<16} {'Qty':<6} {'Total':>8}")
+    #         lines.append("-" * 15)
+            
+    #         for item in self.cart:
+    #             # Truncate item name if too long
+    #             item_name = item['name']
+    #             if len(item_name) > 16:
+    #                 item_name = item_name[:13] + "..."
+                
+    #             lines.append(f"{item_name:<16} {item['qty']:<6.2f} {item['total']:>8.2f}")
+                
+    #         lines.append("-" * 15)
+            
+    #         # Right-aligned totals in narrower format
+    #         lines.append(f"Subtotal: {subtotal:>33.2f}")
+    #         lines.append(f"Discount: -{discount:>31.2f}")
+    #         lines.append(f"TOTAL: {total:>35.2f}")
+    #         lines.append(f"Paid via: {method}")
+    #         lines.append("-" * 15)
+    #         lines.append("  Thank you for visiting!  ")
+    #         lines.append("-" * 15)
+            
+    #         receipt_text = "\n".join(lines)
+            
+    #         # Save to file
+    #         filename = f"receipt_{sale_id}.txt"
+    #         with open(filename, "w") as f:
+    #             f.write(receipt_text)
+                
+    #         # Try to print (Platform specific)
+    #         try:
+    #             if os.name == "nt": # Windows
+    #                 os.startfile(filename, "print")
+    #             else: # Linux
+    #                 # Using lp command with smaller font options if supported
+    #                 # Try to use condensed mode or smaller font
+    #                 os.system(f"lp -o cpi=12 -o lpi=8 {filename}")
+    #         except Exception as e:
+    #             print(f"Printing failed: {e}")
+    #             # Fallback: Just show it was saved
+    #             pass
     # def print_receipt(self, sale_id, subtotal, discount, total, method, cust_name="", cust_contact=""):
     #     # Generate a text receipt
     #     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

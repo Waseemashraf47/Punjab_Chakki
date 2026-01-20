@@ -19,10 +19,14 @@ REM --windowed: No console
 REM --icon: Add an icon if you have one (skipping for now)
 
 pyinstaller --noconfirm --onefile --windowed --name "Punjab_Chakki" ^
-    --hidden-import "PIL" ^
-    --hidden-import "PIL._tkinter_finder" ^
-    --collect-all "tkinter" ^
-    --collect-all "ui" ^
+    --hidden-import "ui.login" ^
+    --hidden-import "ui.main_window" ^
+    --hidden-import "ui.pos" ^
+    --hidden-import "ui.inventory" ^
+    --hidden-import "ui.reports" ^
+    --hidden-import "ui.users" ^
+    --hidden-import "ui.logs" ^
+    --hidden-import "database" ^
     main.py
 
 if %errorlevel% neq 0 (
